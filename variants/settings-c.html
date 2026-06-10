@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings — C · Cards</title>
+<style>
+  :root { --orange:#ffb13c; --text:#f4fbff; --muted:#a6c5d1; --line:rgba(255,255,255,.1);
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { min-height:100vh; display:grid; place-items:center; background:#06121a; padding:24px; }
+
+  .widget { width:390px; border-radius:30px; overflow:hidden; color:var(--text);
+    background:linear-gradient(180deg,#15485c,#0f3a4a); box-shadow:0 30px 70px rgba(0,0,0,.55);
+    animation:rise .6s cubic-bezier(.16,1,.3,1) both; }
+  @keyframes rise { from{opacity:0; transform:translateY(20px) scale(.98);} to{opacity:1; transform:none;} }
+  svg { display:block; }
+
+  .header { display:flex; align-items:center; gap:14px; padding:20px 20px 8px; }
+  .icon-btn { background:rgba(255,255,255,.12); border:none; color:var(--text); cursor:pointer;
+    width:36px; height:36px; border-radius:50%; display:grid; place-items:center; transition:.25s; }
+  .icon-btn:hover { background:rgba(255,255,255,.25); }
+  #back:hover { transform:translateX(-3px); }
+  .header h1 { font-size:22px; font-weight:800; }
+
+  .body { padding:8px 16px 20px; display:flex; flex-direction:column; gap:14px; }
+
+  .card { background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:18px; padding:16px;
+    animation:fade .5s both; }
+  .card:nth-child(1){animation-delay:.08s}.card:nth-child(2){animation-delay:.15s}
+  .card:nth-child(3){animation-delay:.22s}.card:nth-child(4){animation-delay:.29s}
+  @keyframes fade { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
+
+  .ctitle { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:14px;
+    display:flex; align-items:center; gap:8px; }
+  .ctitle svg { color:var(--orange); }
+
+  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .row + .row { margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
+  .label { font-size:15px; }
+  .hint { font-size:12px; color:var(--muted); margin-top:2px; }
+  .inline { display:flex; align-items:center; gap:8px; }
+
+  select { appearance:none; background:rgba(255,255,255,.08); color:var(--text); border:1px solid var(--line);
+    border-radius:10px; padding:8px 30px 8px 12px; font-size:14px; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23a6c5d1' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center; }
+  select:focus { outline:none; border-color:var(--orange); }
+
+  .play { background:rgba(255,177,60,.18); border:1px solid rgba(255,177,60,.35); color:var(--orange);
+    width:32px; height:32px; border-radius:50%; cursor:pointer; display:grid; place-items:center; transition:.2s; }
+  .play:hover { background:rgba(255,177,60,.3); transform:scale(1.08); }
+
+  .switch { position:relative; width:46px; height:27px; flex:none; }
+  .switch input { display:none; }
+  .slider { position:absolute; inset:0; border-radius:999px; background:rgba(255,255,255,.16); transition:.25s; cursor:pointer; }
+  .slider::before { content:""; position:absolute; left:3px; top:3px; width:21px; height:21px; border-radius:50%; background:#fff; transition:.25s; }
+  .switch input:checked + .slider { background:var(--orange); }
+  .switch input:checked + .slider::before { transform:translateX(19px); }
+
+  .seg { display:flex; background:rgba(255,255,255,.08); border-radius:9px; padding:3px; gap:3px; }
+  .seg button { border:none; background:none; color:var(--muted); font-size:13px; padding:6px 14px; border-radius:7px; cursor:pointer; transition:.2s; }
+  .seg button.on { background:var(--orange); color:#1a2330; font-weight:700; }
+
+  input[type=range]{ -webkit-appearance:none; width:100%; height:6px; border-radius:999px; margin-top:12px;
+    background:linear-gradient(90deg,var(--orange) var(--v,70%), rgba(255,255,255,.15) var(--v,70%)); cursor:pointer; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 0 0 4px rgba(255,177,60,.25); }
+
+  /* prayer grid */
+  .grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .ptoggle { display:flex; flex-direction:column; align-items:center; gap:6px; padding:11px 4px; border-radius:12px;
+    background:rgba(255,255,255,.05); border:1px solid var(--line); cursor:pointer; transition:.2s; user-select:none; }
+  .ptoggle span { font-size:11px; color:var(--muted); }
+  .ptoggle svg { color:var(--muted); transition:.2s; }
+  .ptoggle.on { background:rgba(255,177,60,.16); border-color:rgba(255,177,60,.45); }
+  .ptoggle.on svg, .ptoggle.on span { color:var(--orange); }
+
+  .btn { width:100%; padding:12px; border-radius:12px; font-size:15px; cursor:pointer; transition:.2s;
+    border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--text); }
+  .btn:hover { background:rgba(255,255,255,.12); }
+  .btn-orange { background:rgba(255,177,60,.16); border-color:rgba(255,177,60,.35); color:var(--orange); }
+</style>
+</head>
+<body>
+  <div class="widget">
+    <div class="header">
+      <button class="icon-btn" id="back" title="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <h1>Settings</h1>
+    </div>
+
+    <div class="body">
+      <!-- Sound -->
+      <div class="card">
+        <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>Sound</div>
+        <div class="row">
+          <div class="label">Athan style</div>
+          <div class="inline">
+            <select><option>Makkah</option><option>Madinah</option><option>Al-Aqsa</option><option>Beep</option></select>
+            <button class="play"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Dua after athan</div>
+          <div class="inline">
+            <button class="play"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+          </div>
+        </div>
+        <div class="row" style="display:block;">
+          <div class="label">Volume</div>
+          <input type="range" min="0" max="100" value="70" oninput="this.style.setProperty('--v',this.value+'%')" style="--v:70%">
+        </div>
+      </div>
+
+      <!-- Calculation -->
+      <div class="card">
+        <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Calculation</div>
+        <div class="row">
+          <div class="label">Asr madhab</div>
+          <div class="seg"><button class="on" onclick="seg(this)">Shafi</button><button onclick="seg(this)">Hanafi</button></div>
+        </div>
+      </div>
+
+      <!-- Prayers -->
+      <div class="card">
+        <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0 10 10 10 10 0 1 1-10-10z"/></svg>Play athan for</div>
+        <div class="grid" id="grid"></div>
+      </div>
+
+      <!-- System -->
+      <div class="card">
+        <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>System</div>
+        <div class="row">
+          <div><div class="label">Location</div><div class="hint">Houston, US</div></div>
+          <button class="btn-orange" style="width:auto; padding:8px 16px; border-radius:10px;">Re-detect</button>
+        </div>
+        <div class="row">
+          <div class="label">Launch on login</div>
+          <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+        </div>
+        <div class="row" style="display:block;">
+          <button class="btn">Stop playback</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  function seg(b){ b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); }
+  const I={
+    sunrise:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"/><path d="M12 2v7M1 18h2M21 18h2M23 22H1"/><path d="m8 6 4-4 4 4"/></svg>',
+    sun:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"/></svg>',
+    sunset:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"/><path d="M12 9V2M1 18h2M21 18h2M23 22H1"/><path d="m16 5-4 4-4-4"/></svg>',
+    moon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+  };
+  const prayers=[["Fajr","sunrise",1],["Dhuhr","sun",1],["Asr","sun",1],["Maghrib","sunset",1],["Isha","moon",0]];
+  const g=document.getElementById('grid');
+  prayers.forEach(([n,ic,on])=>{const el=document.createElement('div');el.className='ptoggle'+(on?' on':'');
+    el.innerHTML=`${I[ic]}<span>${n}</span>`;el.onclick=()=>el.classList.toggle('on');g.appendChild(el);});
+</script>
+</body>
+</html>

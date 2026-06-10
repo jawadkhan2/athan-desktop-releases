@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings fixes — Stop playback variants</title>
+<style>
+  :root {
+    --orange: #ffb13c;
+    --orange-soft: #ffd293;
+    --text: #f4fbff;
+    --muted: #a6c5d1;
+    --line: rgba(255, 255, 255, 0.08);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a1620;
+    color: var(--text);
+    padding: 30px 20px 60px;
+  }
+  svg { display: block; }
+
+  .page-title { text-align: center; font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+  .page-sub { text-align: center; color: var(--muted); font-size: 14px; max-width: 760px; margin: 0 auto 30px; line-height: 1.5; }
+  .page-sub b { color: var(--orange-soft); }
+
+  .grid {
+    display: flex; flex-wrap: wrap; gap: 34px; justify-content: center; align-items: flex-start;
+  }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+  .v-title { font-size: 17px; font-weight: 800; color: var(--orange); }
+  .v-desc { font-size: 13px; color: var(--muted); max-width: 390px; line-height: 1.5; min-height: 60px; }
+
+  /* ---------- card shell ---------- */
+  .widget {
+    width: 390px;
+    border-radius: 30px;
+    overflow: hidden;
+    color: var(--text);
+    background: linear-gradient(180deg, #15485c, #0f3a4a);
+    position: relative;
+  }
+
+  .icon-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: none; color: var(--text); cursor: pointer;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; transition: 0.25s;
+  }
+  .icon-btn:hover { background: rgba(255, 255, 255, 0.25); }
+
+  .s-header { display: flex; align-items: center; gap: 14px; padding: 20px 20px 14px; }
+  .s-header h1 { font-size: 22px; font-weight: 800; flex: 1; }
+
+  .s-list { padding: 4px 12px 8px; }
+  .s-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 12px; border-radius: 14px; transition: background 0.2s;
+  }
+  .s-row:hover { background: rgba(255, 255, 255, 0.04); }
+  .s-row + .s-row { border-top: 1px solid var(--line); }
+  .s-ico {
+    width: 34px; height: 34px; border-radius: 10px; flex: none;
+    display: grid; place-items: center;
+    background: rgba(255, 255, 255, 0.07); color: var(--orange);
+  }
+  .s-meta { flex: 1; min-width: 0; }
+  .s-label { font-size: 16px; }
+  .s-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .s-ctl { flex: none; display: flex; align-items: center; gap: 8px; }
+
+  /* ---------- FIX 1: custom themed dropdown (native select popup was unreadable) ---------- */
+  .dd { position: relative; }
+  .dd-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 12px; font-size: 14px; cursor: pointer;
+    min-width: 110px; justify-content: space-between;
+    transition: 0.2s;
+  }
+  .dd-btn:hover { background: rgba(255, 255, 255, 0.14); }
+  .dd.open .dd-btn { border-color: var(--orange); }
+  .dd-btn .chev { transition: transform 0.2s; color: var(--muted); }
+  .dd.open .chev { transform: rotate(180deg); }
+  .dd-menu {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
+    min-width: 100%;
+    background: #103d4e;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px; padding: 5px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+    opacity: 0; transform: translateY(-6px) scale(0.97);
+    pointer-events: none; transition: 0.18s;
+  }
+  .dd.open .dd-menu { opacity: 1; transform: none; pointer-events: auto; }
+  .dd-item {
+    padding: 9px 14px; border-radius: 8px; font-size: 14px;
+    cursor: pointer; color: var(--text); white-space: nowrap;
+    display: flex; align-items: center; gap: 8px; transition: 0.15s;
+  }
+  .dd-item:hover { background: rgba(255, 255, 255, 0.09); }
+  .dd-item.sel { color: var(--orange); font-weight: 700; }
+  .dd-item.sel::after { content: "✓"; margin-left: auto; font-size: 12px; }
+
+  /* ---------- play / preview button ---------- */
+  .play {
+    background: rgba(255, 177, 60, 0.18);
+    border: 1px solid rgba(255, 177, 60, 0.35);
+    color: var(--orange);
+    height: 32px; min-width: 32px; border-radius: 16px;
+    cursor: pointer; display: grid; place-items: center;
+    padding: 0 10px; font-size: 12px; transition: 0.2s;
+  }
+  .play.round { width: 32px; padding: 0; border-radius: 50%; }
+  .play:hover { background: rgba(255, 177, 60, 0.3); transform: scale(1.08); }
+  .play .ic-stop { display: none; }
+  /* variant C: the play button itself becomes a stop button while playing */
+  .widget[data-variant="C"].playing .play.round { background: rgba(255, 90, 80, 0.18); border-color: rgba(255, 90, 80, 0.45); color: #ff7a70; }
+  .widget[data-variant="C"].playing .play.round .ic-play { display: none; }
+  .widget[data-variant="C"].playing .play.round .ic-stop { display: block; }
+
+  /* ---------- toggle switch ---------- */
+  .switch { position: relative; width: 46px; height: 27px; flex: none; }
+  .switch input { display: none; }
+  .slider {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16); transition: 0.25s; cursor: pointer;
+  }
+  .slider::before {
+    content: ""; position: absolute; left: 3px; top: 3px;
+    width: 21px; height: 21px; border-radius: 50%;
+    background: #fff; transition: 0.25s;
+  }
+  .switch input:checked + .slider { background: var(--orange); }
+  .switch input:checked + .slider::before { transform: translateX(19px); }
+
+  /* ---------- segmented ---------- */
+  .seg { display: flex; background: rgba(255, 255, 255, 0.08); border-radius: 9px; padding: 3px; gap: 3px; }
+  .seg button {
+    border: none; background: none; color: var(--muted);
+    font-size: 13px; padding: 6px 14px; border-radius: 7px;
+    cursor: pointer; transition: 0.2s;
+  }
+  .seg button.on { background: var(--orange); color: #1a2330; font-weight: 700; }
+
+  /* ---------- range ---------- */
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 120px; height: 6px; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(90deg, var(--orange) 70%, rgba(255, 255, 255, 0.15) 70%);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; box-shadow: 0 0 0 4px rgba(255, 177, 60, 0.25);
+  }
+
+  .s-foot-pad { height: 18px; }
+
+  /* =====================================================================
+     VARIANT A — stop button appears in the header while audio is playing
+     ===================================================================== */
+  .hdr-stop {
+    background: rgba(255, 90, 80, 0.16);
+    border: 1px solid rgba(255, 90, 80, 0.4);
+    color: #ff8a80;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer;
+    opacity: 0; transform: scale(0.6); pointer-events: none;
+    transition: 0.25s;
+  }
+  .widget.playing .hdr-stop {
+    opacity: 1; transform: scale(1); pointer-events: auto;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .hdr-stop:hover { background: rgba(255, 90, 80, 0.32); }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 90, 80, 0.35); }
+    50% { box-shadow: 0 0 0 7px rgba(255, 90, 80, 0); }
+  }
+
+  /* =====================================================================
+     VARIANT B — "Now playing" banner slides up from the card bottom
+     ===================================================================== */
+  .np-banner {
+    position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 10;
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(10, 28, 36, 0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 177, 60, 0.35);
+    border-radius: 16px; padding: 10px 14px;
+    transform: translateY(calc(100% + 16px)); opacity: 0;
+    transition: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+  }
+  .widget.playing .np-banner { transform: none; opacity: 1; pointer-events: auto; }
+  .np-eq { display: flex; align-items: flex-end; gap: 2.5px; height: 16px; }
+  .np-eq i { width: 3px; border-radius: 2px; background: var(--orange); animation: eq 0.9s ease-in-out infinite; }
+  .np-eq i:nth-child(1) { height: 60%; animation-delay: 0s; }
+  .np-eq i:nth-child(2) { height: 100%; animation-delay: 0.2s; }
+  .np-eq i:nth-child(3) { height: 40%; animation-delay: 0.4s; }
+  @keyframes eq { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
+  .np-meta { flex: 1; min-width: 0; }
+  .np-title { font-size: 13px; font-weight: 700; }
+  .np-sub { font-size: 11px; color: var(--muted); }
+  .np-stop {
+    background: rgba(255, 90, 80, 0.16);
+    border: 1px solid rgba(255, 90, 80, 0.4); color: #ff8a80;
+    border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s;
+  }
+  .np-stop:hover { background: rgba(255, 90, 80, 0.32); }
+
+  .hint { font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0 2px; }
+  .hint b { color: var(--orange-soft); }
+</style>
+</head>
+<body>
+
+<div class="page-title">Settings — all fixes applied</div>
+<p class="page-sub">
+  Every card below includes: <b>① readable themed dropdown</b> (replaces the broken native one) ·
+  <b>② silent auto-save</b> (no "Saved" / "Location updated" toasts) ·
+  <b>③ dua play button moved after the toggle</b> ·
+  <b>⑤ "Play athan for" section removed</b> (athan always plays for every prayer).<br/>
+  The cards differ only in <b>④ where "stop playback" lives</b>.
+  Click any <b>▶ play</b> button to simulate playback and see each variant's stop control appear.
+</p>
+
+<div class="grid">
+  <!-- ════════════════ VARIANT A ════════════════ -->
+  <div class="col">
+    <div class="v-title">Variant A — Stop in the header</div>
+    <div class="v-desc">A red stop button fades into the header (next to the title) only while audio is playing. Zero footprint when idle; always visible during playback no matter where you scrolled.</div>
+    <section class="widget" data-variant="A">
+      <div class="s-header">
+        <button class="icon-btn" title="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h1>Settings</h1>
+        <button class="hdr-stop js-stop" title="Stop playback">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        </button>
+      </div>
+      <div class="s-list"></div>
+      <div class="s-foot-pad"></div>
+    </section>
+  </div>
+
+  <!-- ════════════════ VARIANT B ════════════════ -->
+  <div class="col">
+    <div class="v-title">Variant B — "Now playing" banner</div>
+    <div class="v-desc">A mini-player banner slides up from the bottom of the card while audio plays, with an equalizer animation, the track name, and a Stop pill. Doubles as a "what's playing" indicator.</div>
+    <section class="widget" data-variant="B">
+      <div class="s-header">
+        <button class="icon-btn" title="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h1>Settings</h1>
+      </div>
+      <div class="s-list"></div>
+      <div class="s-foot-pad"></div>
+      <div class="np-banner">
+        <div class="np-eq"><i></i><i></i><i></i></div>
+        <div class="np-meta">
+          <div class="np-title js-np-title">Athan — Egypt</div>
+          <div class="np-sub">Preview playing</div>
+        </div>
+        <button class="np-stop js-stop">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          Stop
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ════════════════ VARIANT C ════════════════ -->
+  <div class="col">
+    <div class="v-title">Variant C — Play buttons become stop</div>
+    <div class="v-desc">No separate stop control at all: while audio is playing, the round ▶ preview buttons turn into red ■ stop buttons. Stop lives exactly where you started the sound. (Note: can't stop a scheduled athan from the settings page with this one — main view would need its own stop.)</div>
+    <section class="widget" data-variant="C">
+      <div class="s-header">
+        <button class="icon-btn" title="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h1>Settings</h1>
+      </div>
+      <div class="s-list"></div>
+      <div class="s-foot-pad"></div>
+    </section>
+  </div>
+</div>
+
+<p class="hint" style="margin-top:34px">Tip: a 4th option (not mocked here) is putting Stop on the <b>main view</b> only — e.g. the active prayer row shows a stop icon while the athan is ringing. Say the word if you want that mocked too.</p>
+
+<script>
+  const ROWS_HTML = `
+    <!-- Athan style — FIX 1: custom dropdown -->
+    <div class="s-row" style="position:relative; z-index:5;">
+      <div class="s-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></div>
+      <div class="s-meta"><div class="s-label">Athan style</div></div>
+      <div class="s-ctl">
+        <div class="dd js-dd">
+          <button class="dd-btn"><span class="js-dd-val">Egypt</span>
+            <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+          </button>
+          <div class="dd-menu">
+            <div class="dd-item">Makkah</div>
+            <div class="dd-item">Madina</div>
+            <div class="dd-item sel">Egypt</div>
+            <div class="dd-item">Al-Aqsa</div>
+          </div>
+        </div>
+        <button class="play round js-play" data-track="Athan — Egypt" title="Preview">
+          <svg class="ic-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="ic-stop" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Dua after athan — FIX 3: play button AFTER the toggle -->
+    <div class="s-row">
+      <div class="s-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+      <div class="s-meta"><div class="s-label">Dua after athan</div></div>
+      <div class="s-ctl">
+        <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
+        <button class="play round js-play" data-track="Dua after athan" title="Preview">
+          <svg class="ic-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="ic-stop" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Volume -->
+    <div class="s-row">
+      <div class="s-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></div>
+      <div class="s-meta"><div class="s-label">Volume</div></div>
+      <div class="s-ctl"><input type="range" min="0" max="1" step="0.01" value="0.7" /></div>
+    </div>
+
+    <!-- Asr madhab -->
+    <div class="s-row">
+      <div class="s-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"/></svg></div>
+      <div class="s-meta"><div class="s-label">Asr madhab</div></div>
+      <div class="s-ctl">
+        <div class="seg">
+          <button class="on">Shafi</button>
+          <button>Hanafi</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Location -->
+    <div class="s-row">
+      <div class="s-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <div class="s-meta"><div class="s-label">Location</div><div class="s-hint">Houston, US</div></div>
+      <div class="s-ctl"><button class="play">Re-detect</button></div>
+    </div>
+
+    <!-- Launch on login -->
+    <div class="s-row">
+      <div class="s-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg></div>
+      <div class="s-meta"><div class="s-label">Launch on login</div></div>
+      <div class="s-ctl"><label class="switch"><input type="checkbox" checked /><span class="slider"></span></label></div>
+    </div>
+  `;
+
+  document.querySelectorAll(".widget").forEach((card) => {
+    card.querySelector(".s-list").innerHTML = ROWS_HTML;
+    const isC = card.dataset.variant === "C";
+
+    // custom dropdown
+    const dd = card.querySelector(".js-dd");
+    dd.querySelector(".dd-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      dd.classList.toggle("open");
+    });
+    dd.querySelectorAll(".dd-item").forEach((it) => {
+      it.addEventListener("click", () => {
+        dd.querySelectorAll(".dd-item").forEach((x) => x.classList.remove("sel"));
+        it.classList.add("sel");
+        dd.querySelector(".js-dd-val").textContent = it.textContent.trim();
+        dd.classList.remove("open");
+        // auto-saves silently here — no toast
+      });
+    });
+
+    // simulated playback
+    let timer = null;
+    const stop = () => { card.classList.remove("playing"); clearTimeout(timer); };
+    const start = (track) => {
+      const t = card.querySelector(".js-np-title");
+      if (t) t.textContent = track;
+      card.classList.add("playing");
+      clearTimeout(timer);
+      timer = setTimeout(stop, 8000); // pretend the audio is ~8s long
+    };
+    card.querySelectorAll(".js-play").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (isC && card.classList.contains("playing")) stop();
+        else start(btn.dataset.track);
+      });
+    });
+    card.querySelectorAll(".js-stop").forEach((btn) => btn.addEventListener("click", stop));
+  });
+
+  document.addEventListener("click", () =>
+    document.querySelectorAll(".dd.open").forEach((d) => d.classList.remove("open"))
+  );
+</script>
+</body>
+</html>

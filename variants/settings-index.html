@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings — Pick a Layout</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { min-height:100vh; background:#0a0f14; color:#e6edf3;
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif; padding:32px 24px 60px; }
+  h1 { font-size:26px; font-weight:800; }
+  .sub { color:#8b98a5; margin:6px 0 28px; font-size:15px; }
+  .grid { display:flex; flex-wrap:wrap; gap:28px; justify-content:center; }
+  .col { display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .frame-wrap { border-radius:30px; overflow:hidden; box-shadow:0 24px 50px rgba(0,0,0,.5); background:#06121a; }
+  iframe { width:430px; height:760px; border:0; display:block; }
+  .tag { font-size:15px; font-weight:700; }
+  .tag span { color:#8b98a5; font-weight:400; }
+  a.open { font-size:13px; color:#7fd1e8; text-decoration:none; border:1px solid #234; padding:6px 14px; border-radius:8px; }
+  a.open:hover { border-color:#7fd1e8; }
+</style>
+</head>
+<body>
+  <h1>Settings form — choose a layout</h1>
+  <p class="sub">All three share the Variant&nbsp;C theme (teal gradient, orange accents, animated toggles). Same controls, different organization.</p>
+  <div class="grid">
+    <div class="col">
+      <div class="tag">A · <span>Sky header + sections</span></div>
+      <div class="frame-wrap"><iframe src="settings-a.html"></iframe></div>
+      <a class="open" href="settings-a.html" target="_blank">Open fullscreen ↗</a>
+    </div>
+    <div class="col">
+      <div class="tag">B · <span>List rows</span></div>
+      <div class="frame-wrap"><iframe src="settings-b.html"></iframe></div>
+      <a class="open" href="settings-b.html" target="_blank">Open fullscreen ↗</a>
+    </div>
+    <div class="col">
+      <div class="tag">C · <span>Grouped cards</span></div>
+      <div class="frame-wrap"><iframe src="settings-c.html"></iframe></div>
+      <a class="open" href="settings-c.html" target="_blank">Open fullscreen ↗</a>
+    </div>
+  </div>
+</body>
+</html>

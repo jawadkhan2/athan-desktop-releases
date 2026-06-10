@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings — A · Sky Header + Sections</title>
+<style>
+  :root { --orange:#ffb13c; --text:#f4fbff; --muted:#a6c5d1; --line:rgba(255,255,255,.09);
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { min-height:100vh; display:grid; place-items:center; background:#06121a; padding:24px; }
+
+  .widget {
+    width:390px; border-radius:30px; overflow:hidden; color:var(--text);
+    background: linear-gradient(180deg,#15485c,#0f3a4a);
+    box-shadow:0 30px 70px rgba(0,0,0,.55);
+    animation: rise .6s cubic-bezier(.16,1,.3,1) both;
+  }
+  @keyframes rise { from{opacity:0; transform:translateY(20px) scale(.98);} to{opacity:1; transform:none;} }
+  svg { display:block; }
+
+  /* ---- sky header (compact) ---- */
+  .sky {
+    position:relative; height:96px;
+    background: linear-gradient(180deg,#2a7ea0,#1a566e);
+    display:flex; align-items:center; gap:12px; padding:0 18px;
+    overflow:hidden;
+  }
+  .sky .glow { position:absolute; right:-30px; top:-30px; width:120px; height:120px;
+    background: radial-gradient(circle, rgba(255,177,60,.5), transparent 70%); filter:blur(6px); }
+  .icon-btn { background:rgba(255,255,255,.14); border:none; color:var(--text); cursor:pointer;
+    width:36px; height:36px; border-radius:50%; display:grid; place-items:center; transition:.25s; z-index:1; }
+  .icon-btn:hover { background:rgba(255,255,255,.28); }
+  #back:hover { transform: translateX(-3px); }
+  .sky h1 { font-size:22px; font-weight:800; z-index:1; }
+  .sky .sub { font-size:12px; color:var(--muted); z-index:1; }
+
+  /* ---- body ---- */
+  .body { padding:8px 18px 22px; }
+  .section { padding:16px 0; border-bottom:1px solid var(--line); animation: fade .5s both; }
+  .section:last-child { border-bottom:0; }
+  .section:nth-child(1){animation-delay:.08s}.section:nth-child(2){animation-delay:.14s}
+  .section:nth-child(3){animation-delay:.20s}.section:nth-child(4){animation-delay:.26s}
+  .section:nth-child(5){animation-delay:.32s}
+  @keyframes fade { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+  .stitle { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .row + .row { margin-top:14px; }
+  .row .label { font-size:16px; }
+  .row .hint { font-size:12px; color:var(--muted); margin-top:2px; }
+
+  /* select */
+  select { appearance:none; background:rgba(255,255,255,.08); color:var(--text);
+    border:1px solid var(--line); border-radius:10px; padding:9px 34px 9px 12px; font-size:14px; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23a6c5d1' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center; }
+  select:focus { outline:none; border-color:var(--orange); }
+
+  /* play button */
+  .play { background:rgba(255,177,60,.18); border:1px solid rgba(255,177,60,.35); color:var(--orange);
+    width:36px; height:36px; border-radius:50%; cursor:pointer; display:grid; place-items:center; transition:.2s; }
+  .play:hover { background:rgba(255,177,60,.3); transform:scale(1.08); }
+  .inline { display:flex; align-items:center; gap:8px; }
+
+  /* toggle switch */
+  .switch { position:relative; width:48px; height:28px; flex:none; }
+  .switch input { display:none; }
+  .slider { position:absolute; inset:0; border-radius:999px; background:rgba(255,255,255,.16);
+    transition:.25s; cursor:pointer; }
+  .slider::before { content:""; position:absolute; left:3px; top:3px; width:22px; height:22px; border-radius:50%;
+    background:#fff; transition:.25s; }
+  .switch input:checked + .slider { background:var(--orange); }
+  .switch input:checked + .slider::before { transform:translateX(20px); }
+
+  /* segmented control */
+  .seg { display:flex; background:rgba(255,255,255,.08); border-radius:10px; padding:3px; gap:3px; }
+  .seg button { flex:1; border:none; background:none; color:var(--muted); font-size:14px; padding:7px 14px;
+    border-radius:8px; cursor:pointer; transition:.2s; }
+  .seg button.on { background:var(--orange); color:#1a2330; font-weight:700; }
+
+  /* volume slider */
+  input[type=range]{ -webkit-appearance:none; width:100%; height:6px; border-radius:999px;
+    background:linear-gradient(90deg,var(--orange) var(--v,60%), rgba(255,255,255,.15) var(--v,60%)); cursor:pointer; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:#fff; box-shadow:0 0 0 4px rgba(255,177,60,.25); }
+
+  /* prayer chips */
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { display:flex; align-items:center; gap:7px; padding:8px 13px; border-radius:999px;
+    background:rgba(255,255,255,.06); border:1px solid var(--line); cursor:pointer; font-size:14px; transition:.2s; user-select:none; }
+  .chip.on { background:rgba(255,177,60,.18); border-color:rgba(255,177,60,.45); color:#ffd293; }
+  .chip .dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.25); transition:.2s; }
+  .chip.on .dot { background:var(--orange); box-shadow:0 0 8px var(--orange); }
+
+  /* full-width buttons */
+  .btn { width:100%; padding:12px; border-radius:12px; font-size:15px; cursor:pointer; transition:.2s;
+    border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--text); }
+  .btn:hover { background:rgba(255,255,255,.12); }
+  .btn.ghost-orange { color:var(--orange); border-color:rgba(255,177,60,.3); }
+  .btn + .btn { margin-top:10px; }
+</style>
+</head>
+<body>
+  <div class="widget">
+    <div class="sky">
+      <div class="glow"></div>
+      <button class="icon-btn" id="back" title="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div>
+        <h1>Settings</h1>
+        <div class="sub">Athan &amp; prayer preferences</div>
+      </div>
+    </div>
+
+    <div class="body">
+      <!-- Sound -->
+      <div class="section">
+        <div class="stitle">Sound</div>
+        <div class="row">
+          <div><div class="label">Athan style</div></div>
+          <div class="inline">
+            <select><option>Makkah</option><option>Madinah</option><option>Al-Aqsa</option><option>Beep</option></select>
+            <button class="play" title="Preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+          </div>
+        </div>
+        <div class="row">
+          <div><div class="label">Play dua after athan</div></div>
+          <div class="inline">
+            <button class="play" title="Preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+          </div>
+        </div>
+        <div class="row">
+          <div><div class="label">Volume</div></div>
+        </div>
+        <div class="row"><input type="range" min="0" max="100" value="70" oninput="this.style.setProperty('--v', this.value+'%')" style="--v:70%"></div>
+      </div>
+
+      <!-- Calculation -->
+      <div class="section">
+        <div class="stitle">Calculation</div>
+        <div class="row">
+          <div><div class="label">Asr (madhab)</div></div>
+          <div class="seg">
+            <button class="on" onclick="seg(this)">Shafi</button>
+            <button onclick="seg(this)">Hanafi</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notify for -->
+      <div class="section">
+        <div class="stitle">Play athan for</div>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <!-- System -->
+      <div class="section">
+        <div class="stitle">System</div>
+        <div class="row">
+          <div><div class="label">Launch on login</div></div>
+          <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+        </div>
+        <div class="row">
+          <div><div class="label">Location</div><div class="hint">Houston, US</div></div>
+          <button class="btn ghost-orange" style="width:auto; padding:8px 16px;">Re-detect</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <button class="btn">Stop playback</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  function seg(b){ b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); }
+  const prayers=[["Fajr",1],["Dhuhr",1],["Asr",1],["Maghrib",1],["Isha",0]];
+  const c=document.getElementById('chips');
+  prayers.forEach(([n,on])=>{const el=document.createElement('div');el.className='chip'+(on?' on':'');
+    el.innerHTML=`<span class="dot"></span>${n}`;el.onclick=()=>el.classList.toggle('on');c.appendChild(el);});
+</script>
+</body>
+</html>

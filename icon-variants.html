@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Athan — Tray Icon Variants</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: #18181b;
+    color: #e4e4e7;
+    padding: 40px 24px 80px;
+  }
+  h1 { text-align: center; font-weight: 600; margin-bottom: 6px; }
+  p.sub { text-align: center; color: #a1a1aa; margin-bottom: 36px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 24px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  .card {
+    background: #232328;
+    border: 1px solid #3f3f46;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .card h2 { font-size: 17px; font-weight: 600; }
+  .card h2 span {
+    display: inline-block;
+    background: #3f3f46;
+    color: #fafafa;
+    border-radius: 8px;
+    width: 26px; height: 26px;
+    text-align: center; line-height: 26px;
+    margin-right: 10px; font-size: 14px;
+  }
+  .card p.desc { color: #a1a1aa; font-size: 13.5px; line-height: 1.5; }
+  .hero {
+    display: flex;
+    justify-content: center;
+    padding: 18px 0;
+  }
+  .hero svg { width: 110px; height: 110px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.45)); }
+  .tray-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #71717a; margin-bottom: 6px; }
+  .tray {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .tray.dark  { background: #101014; color: #d4d4d8; border: 1px solid #2a2a30; }
+  .tray.light { background: #f1f1f4; color: #3f3f46; border: 1px solid #d4d4d8; }
+  .tray svg.s16 { width: 16px; height: 16px; }
+  .tray svg.s24 { width: 24px; height: 24px; }
+  .tray .clock { font-variant-numeric: tabular-nums; opacity: .85; }
+  /* monochrome template variant adapts via currentColor */
+  .tray.dark  { color: #ffffff; }
+  .tray.light .mono { color: #1f1f24; }
+  .tray.dark  .mono { color: #ffffff; }
+  .hero .mono { color: #ffffff; }
+  button.dl {
+    align-self: flex-start;
+    background: #2f2f36;
+    color: #e4e4e7;
+    border: 1px solid #4b4b54;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button.dl:hover { background: #3a3a42; }
+</style>
+</head>
+<body>
+
+<h1>Athan — System Tray Icon</h1>
+<p class="sub">Four variants, each previewed at real tray sizes (16&nbsp;px / 24&nbsp;px) on dark and light taskbars.</p>
+
+<div class="grid">
+
+  <!-- ============ VARIANT 1 : Emerald Dome ============ -->
+  <div class="card" data-variant="1" data-name="emerald-dome">
+    <h2><span>1</span>Emerald Dome</h2>
+    <p class="desc">White mosque dome on an emerald gradient badge. Bold silhouette, instantly readable at 16&nbsp;px, classic “prayer app” green.</p>
+    <div class="hero">
+      <svg class="vsvg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#10b981"/>
+            <stop offset="1" stop-color="#047857"/>
+          </linearGradient>
+        </defs>
+        <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#g1)"/>
+        <path d="M32 8 C 31 12 16 18 16 33 C 16 40.5 22.5 44 32 44 C 41.5 44 48 40.5 48 33 C 48 18 33 12 32 8 Z" fill="#ffffff"/>
+        <rect x="12" y="47" width="40" height="8" rx="4" fill="#ffffff"/>
+      </svg>
+    </div>
+    <div>
+      <div class="tray-label">Dark taskbar</div>
+      <div class="tray dark"><svg class="s24 clone"></svg><svg class="s16 clone"></svg><span class="clock">4:23 PM</span></div>
+    </div>
+    <div>
+      <div class="tray-label">Light taskbar</div>
+      <div class="tray light"><svg class="s24 clone"></svg><svg class="s16 clone"></svg><span class="clock">4:23 PM</span></div>
+    </div>
+    <button class="dl">Download SVG</button>
+  </div>
+
+  <!-- ============ VARIANT 2 : Midnight Crescent & Star ============ -->
+  <div class="card" data-variant="2" data-name="midnight-crescent-star">
+    <h2><span>2</span>Midnight Crescent &amp; Star</h2>
+    <p class="desc">Gold crescent and star on a deep midnight-indigo circle. The most traditional symbol — warm, premium, great contrast on any tray.</p>
+    <div class="hero">
+      <svg class="vsvg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="g2" cx="0.32" cy="0.28" r="1.1">
+            <stop offset="0" stop-color="#3b3690"/>
+            <stop offset="1" stop-color="#1d1a4b"/>
+          </radialGradient>
+          <mask id="m2">
+            <rect width="64" height="64" fill="#ffffff"/>
+            <circle cx="40.5" cy="26.5" r="15.5" fill="#000000"/>
+          </mask>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill="url(#g2)"/>
+        <circle cx="29.5" cy="33.5" r="19" fill="#fbbf24" mask="url(#m2)"/>
+        <path d="M45 13.5 L46.5 17.9 L51.2 18 L47.5 20.8 L48.8 25.3 L45 22.6 L41.2 25.3 L42.5 20.8 L38.8 18 L43.5 17.9 Z" fill="#fbbf24"/>
+      </svg>
+    </div>
+    <div>
+      <div class="tray-label">Dark taskbar</div>
+      <div class="tray dark"><svg class="s24 clone"></svg><svg class="s16 clone"></svg><span class="clock">4:23 PM</span></div>
+    </div>
+    <div>
+      <div class="tray-label">Light taskbar</div>
+      <div class="tray light"><svg class="s24 clone"></svg><svg class="s16 clone"></svg><span class="clock">4:23 PM</span></div>
+    </div>
+    <button class="dl">Download SVG</button>
+  </div>
+
+  <!-- ============ VARIANT 3 : Minaret Call (monochrome / template) ============ -->
+  <div class="card" data-variant="3" data-name="minaret-call-mono">
+    <h2><span>3</span>Minaret Call <small style="color:#71717a;font-weight:400">(monochrome)</small></h2>
+    <p class="desc">A minaret broadcasting the athan, drawn like a native Windows tray glyph (volume / network style). Single color — adapts to dark or light tray themes automatically.</p>
+    <div class="hero">
+      <svg class="vsvg mono" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <!-- onion dome -->
+        <path d="M32 5 C 31.4 8 24 12.5 24 19.5 C 24 23.5 27.2 26 32 26 C 36.8 26 40 23.5 40 19.5 C 40 12.5 32.6 8 32 5 Z" fill="currentColor"/>
+        <!-- balcony -->
+        <rect x="25" y="28" width="14" height="5" rx="2.5" fill="currentColor"/>
+        <!-- tower (slight taper) -->
+        <path d="M28.5 35 L35.5 35 L37 52 L27 52 Z" fill="currentColor"/>
+        <!-- base -->
+        <rect x="22" y="54" width="20" height="6" rx="3" fill="currentColor"/>
+        <!-- sound waves: the call -->
+        <path d="M46 12 a 13 13 0 0 1 0 19" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+        <path d="M52.5 7 a 20 20 0 0 1 0 29" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+        <path d="M18 31 a 13 13 0 0 1 0 -19" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+        <path d="M11.5 36 a 20 20 0 0 1 0 -29" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="tray-label">Dark taskbar</div>
+      <div class="tray dark"><svg class="s24 clone mono"></svg><svg class="s16 clone mono"></svg><span class="clock">4:23 PM</span></div>
+    </div>
+    <div>
+      <div class="tray-label">Light taskbar</div>
+      <div class="tray light"><svg class="s24 clone mono"></svg><svg class="s16 clone mono"></svg><span class="clock">4:23 PM</span></div>
+    </div>
+    <button class="dl">Download SVG</button>
+  </div>
+
+  <!-- ============ VARIANT 4 : Crescent Call ============ -->
+  <div class="card" data-variant="4" data-name="crescent-call">
+    <h2><span>4</span>Crescent Call</h2>
+    <p class="desc">White crescent with emerald sound waves on a dark slate badge — “the athan ringing out under the moon.” Modern and ties the audio purpose to the symbol.</p>
+    <div class="hero">
+      <svg class="vsvg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#334155"/>
+            <stop offset="1" stop-color="#0f172a"/>
+          </linearGradient>
+          <mask id="m4">
+            <rect width="64" height="64" fill="#ffffff"/>
+            <circle cx="36" cy="27" r="14.5" fill="#000000"/>
+          </mask>
+        </defs>
+        <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#g4)"/>
+        <circle cx="27" cy="34" r="17.5" fill="#ffffff" mask="url(#m4)"/>
+        <path d="M44 24 a 12 12 0 0 1 0 17" fill="none" stroke="#34d399" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M50.5 18.5 a 19 19 0 0 1 0 28" fill="none" stroke="#34d399" stroke-width="4.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="tray-label">Dark taskbar</div>
+      <div class="tray dark"><svg class="s24 clone"></svg><svg class="s16 clone"></svg><span class="clock">4:23 PM</span></div>
+    </div>
+    <div>
+      <div class="tray-label">Light taskbar</div>
+      <div class="tray light"><svg class="s24 clone"></svg><svg class="s16 clone"></svg><span class="clock">4:23 PM</span></div>
+    </div>
+    <button class="dl">Download SVG</button>
+  </div>
+
+</div>
+
+<script>
+  // Clone each card's hero SVG into its tray previews (so there's a single source of truth),
+  // and wire up the download buttons.
+  document.querySelectorAll(".card").forEach((card, i) => {
+    const src = card.querySelector("svg.vsvg");
+    card.querySelectorAll("svg.clone").forEach(slot => {
+      const copy = src.cloneNode(true);
+      // de-duplicate ids (gradients/masks) per clone so they don't collide
+      const suffix = "_" + i + "_" + Math.random().toString(36).slice(2, 7);
+      copy.querySelectorAll("[id]").forEach(el => {
+        const old = el.id;
+        el.id = old + suffix;
+        copy.innerHTML = copy.innerHTML.replaceAll("url(#" + old + ")", "url(#" + el.id + ")")
+                                       .replaceAll('"#' + old + '"', '"#' + el.id + '"');
+      });
+      copy.setAttribute("class", slot.getAttribute("class").replace("clone", "").trim());
+      slot.replaceWith(copy);
+    });
+
+    card.querySelector("button.dl").addEventListener("click", () => {
+      const svg = card.querySelector("svg.vsvg").cloneNode(true);
+      svg.removeAttribute("class");
+      svg.setAttribute("width", "1024");
+      svg.setAttribute("height", "1024");
+      // bake currentColor to white for the monochrome variant
+      svg.querySelectorAll("[fill='currentColor']").forEach(el => el.setAttribute("fill", "#ffffff"));
+      svg.querySelectorAll("[stroke='currentColor']").forEach(el => el.setAttribute("stroke", "#ffffff"));
+      const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "athan-tray-" + card.dataset.name + ".svg";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  });
+</script>
+</body>
+</html>
