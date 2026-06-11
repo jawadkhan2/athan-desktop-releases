@@ -33,10 +33,14 @@ jobs:
 
       - uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PAT with release write access to athan-desktop-releases
+          # (code repo is private; releases live on the public repo)
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          owner: jawadkhan2
+          repo: athan-desktop-releases
           tagName: ${{ inputs.tag || github.ref_name }}
           releaseName: "Athan ${{ inputs.tag || github.ref_name }}"
           releaseBody: "Download `Athan_x64-setup.exe` below to install. Existing installs update automatically."

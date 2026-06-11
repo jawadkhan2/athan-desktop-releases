@@ -48,7 +48,8 @@ Single `main.ts` file (vanilla TS): prayer list, animated sky (day/night with be
 
 ## Releases & OTA updates
 
-- Distribution: GitHub Releases on `jawadkhan2/athan-desktop`. Users install once via the NSIS installer (`Athan_X.Y.Z_x64-setup.exe`, per-user, no UAC); after that the app self-updates via `tauri-plugin-updater` against `releases/latest/download/latest.json`.
+- Distribution: GitHub Releases on the **public** `jawadkhan2/athan-desktop-releases` repo (the code repo is private, so releases live separately). Users install once via the NSIS installer (`Athan_X.Y.Z_x64-setup.exe`, per-user, no UAC); after that the app self-updates via `tauri-plugin-updater` against that repo's `releases/latest/download/latest.json`.
 - To release: bump the version in **all three** of `src-tauri/tauri.conf.json` (authoritative), `src-tauri/Cargo.toml`, `package.json`; run `cargo check` to refresh `Cargo.lock`; commit; `git tag vX.Y.Z`; push the tag. `.github/workflows/release.yml` builds, signs, and publishes the release (including `latest.json`) automatically.
 - Updater artifacts are signed with the minisign key at `~\.tauri\athan.key` (no password), uploaded as the `TAURI_SIGNING_PRIVATE_KEY` repo secret. The matching pubkey is baked into `tauri.conf.json` — losing the private key strands all installed clients.
+- CI publishes cross-repo using the `RELEASES_TOKEN` secret (fine-grained PAT with Contents read/write on `athan-desktop-releases`).
 - Windows bundles NSIS only (no MSI): the updater needs passive install mode, and per-user install avoids UAC.
