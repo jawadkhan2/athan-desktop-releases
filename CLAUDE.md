@@ -29,6 +29,7 @@ Tauri v2 desktop app: Rust backend + vanilla TypeScript frontend (no framework).
 | `audio.rs` | Dedicated audio thread (rodio); `AudioCmd` channel for Play / Stop / SetVolume |
 | `scheduler.rs` | 20 s tick loop: fires the athan at prayer time, keeps tray tooltip/menu current |
 | `tray.rs` | Tray icon, context menu, tooltip |
+| `updater.rs` | OTA auto-update thread: checks GitHub Releases 30 s after launch, then every 6 h; silent download + install with notification |
 
 ### Frontend (`src/`)
 
@@ -44,3 +45,10 @@ Single `main.ts` file (vanilla TS): prayer list, animated sky (day/night with be
 - Window close is intercepted (`CloseRequested`) → `window.hide()`. Quit uses `w.destroy()` then `app.exit(0)` (avoids WebView2 warnings on Windows).
 - Frontend navigation between main/settings is driven by a `"navigate"` Tauri event (payload `"main"` or `"settings"`).
 - The Rust `Settings` struct in `config.rs` and the TypeScript `Settings` interface in `src/main.ts` must stay in sync.
+
+## Releases & OTA updates
+
+- Distribution: GitHub Releases on `jawadkhan2/athan-desktop`. Users install once via the NSIS installer (`Athan_X.Y.Z_x64-setup.exe`, per-user, no UAC); after that the app self-updates via `tauri-plugin-updater` against `releases/latest/download/latest.json`.
+- To release: bump the version in **all three** of `src-tauri/tauri.conf.json` (authoritative), `src-tauri/Cargo.toml`, `package.json`; run `cargo check` to refresh `Cargo.lock`; commit; `git tag vX.Y.Z`; push the tag. `.github/workflows/release.yml` builds, signs, and publishes the release (including `latest.json`) automatically.
+- Updater artifacts are signed with the minisign key at `~\.tauri\athan.key` (no password), uploaded as the `TAURI_SIGNING_PRIVATE_KEY` repo secret. The matching pubkey is baked into `tauri.conf.json` — losing the private key strands all installed clients.
+- Windows bundles NSIS only (no MSI): the updater needs passive install mode, and per-user install avoids UAC.

@@ -4,6 +4,8 @@ mod location;
 mod prayer;
 mod scheduler;
 mod tray;
+#[cfg(desktop)]
+mod updater;
 
 use audio::AudioCmd;
 use serde::Serialize;
@@ -248,7 +250,8 @@ pub fn run() {
             .plugin(tauri_plugin_autostart::init(
                 tauri_plugin_autostart::MacosLauncher::LaunchAgent,
                 Some(vec!["--minimized"]),
-            ));
+            ))
+            .plugin(tauri_plugin_updater::Builder::new().build());
     }
 
     builder
@@ -292,6 +295,9 @@ pub fn run() {
             }
 
             scheduler::spawn(handle.clone());
+
+            #[cfg(desktop)]
+            updater::spawn(handle.clone());
             Ok(())
         })
         .run(tauri::generate_context!())
