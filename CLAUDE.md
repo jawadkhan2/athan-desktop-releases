@@ -26,10 +26,10 @@ Tauri v2 desktop app: Rust backend + vanilla TypeScript frontend (no framework).
 | `config.rs` | `Settings` struct, `load`/`save` to `%APPDATA%\com.jawad.athandesktop\settings.json` |
 | `location.rs` | IP geolocation (`ip-api.com`), country → calculation-method mapping |
 | `prayer.rs` | Wraps the `salah` crate: `try_compute`, `entries`, `fardh_times` |
-| `audio.rs` | Dedicated audio thread (rodio); `AudioCmd` channel for Play / Stop / SetVolume |
+| `audio.rs` | Dedicated audio thread (rodio); `AudioCmd` channel for Play / Stop / SetVolume. Opens a fresh `OutputStream` per play and auto-recovers from mid-athan device loss (resumes from the elapsed offset); keeps system + monitor awake during playback (`SetThreadExecutionState` + F15 wake nudge) so monitor-attached speakers can't be silenced by display sleep |
 | `scheduler.rs` | 20 s tick loop: fires the athan at prayer time, keeps tray tooltip/menu current |
 | `tray.rs` | Tray icon, context menu, tooltip |
-| `updater.rs` | OTA auto-update thread: checks GitHub Releases 30 s after launch, then every 6 h; silent download + install with notification |
+| `updater.rs` | OTA auto-update thread: checks GitHub Releases 30 s after launch, then every 6 h; silent download + install with notification. Waits (polls `AppState.athan_playing`) until any athan finishes before installing, so a passive install never cuts off playback |
 
 ### Frontend (`src/`)
 
@@ -39,6 +39,7 @@ Single `main.ts` file (vanilla TS): prayer list, animated sky (day/night with be
 
 - `AppState` holds `Mutex<Settings>` + `Mutex<Sender<AudioCmd>>` managed via Tauri state.
 - All audio goes through `send_audio(app, AudioCmd::…)` in `lib.rs`; audio lives on a non-Send dedicated thread.
+- `AppState.athan_playing` (`Arc<AtomicBool>`) is set in `fire_prayer` and cleared by the audio thread's `on_ended` callback; the updater blocks installs while it is true.
 - Scheduler caches `PrayerTimes` keyed by `date|lat|lon|method|madhab` — recomputes only on change.
 - Prayer fire window: 0–20 s after prayer time, deduped per day by a `HashSet<String>`.
 - Fajr always uses `athan_fajr.mp3`; other prayers use the user-selected style file.

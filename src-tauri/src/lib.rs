@@ -10,8 +10,9 @@ mod updater;
 use audio::AudioCmd;
 use serde::Serialize;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_notification::NotificationExt;
@@ -19,6 +20,9 @@ use tauri_plugin_notification::NotificationExt;
 pub struct AppState {
     pub settings: Mutex<config::Settings>,
     pub audio_tx: Mutex<Sender<AudioCmd>>,
+    /// True while a scheduled athan (and its optional dua) is playing. The
+    /// updater checks this so a passive install never stops the app mid-athan.
+    pub athan_playing: Arc<AtomicBool>,
 }
 
 /// Resolve the bundled audio directory (falls back to the source tree in dev).
@@ -68,6 +72,9 @@ pub fn fire_prayer(app: &AppHandle, key: &str) {
     if settings.play_dua_after {
         paths.push(dir.join(audio::DUA_FILE));
     }
+    app.state::<AppState>()
+        .athan_playing
+        .store(true, Ordering::SeqCst);
     send_audio(app, AudioCmd::Play { paths, volume: settings.volume });
     emit_playback_started(app, "athan", Some(key.to_string()));
 
@@ -88,15 +95,36 @@ pub fn fire_prayer(app: &AppHandle, key: &str) {
 }
 
 /// Detect location in the background and persist it.
+///
+/// Retries with backoff: the network stack (or DNS) is often not ready in the
+/// first seconds after launch — especially right after install or a reboot —
+/// and a single failed lookup must not leave the app stuck on "Detecting…".
 pub fn trigger_redetect(app: &AppHandle) {
     let handle = app.clone();
     std::thread::spawn(move || {
-        if let Ok(loc) = location::detect() {
-            let state = handle.state::<AppState>();
-            let mut s = state.settings.lock().unwrap();
-            s.method = Some(location::method_for_country(&loc.country_code).to_string());
-            s.location = Some(loc);
-            let _ = config::save(&handle, &s);
+        // ~0, 3, 6, 12, 24, then 60 s steady: recover fast, then poll forever.
+        let backoff = [3u64, 6, 12, 24];
+        let mut attempt = 0usize;
+        loop {
+            match location::detect() {
+                Ok(loc) => {
+                    let state = handle.state::<AppState>();
+                    let mut s = state.settings.lock().unwrap();
+                    s.method =
+                        Some(location::method_for_country(&loc.country_code).to_string());
+                    s.location = Some(loc);
+                    let _ = config::save(&handle, &s);
+                    drop(s);
+                    // Nudge the frontend to refresh immediately, not on its 60 s tick.
+                    let _ = handle.emit("location-updated", ());
+                    return;
+                }
+                Err(_) => {
+                    let delay = backoff.get(attempt).copied().unwrap_or(60);
+                    attempt += 1;
+                    std::thread::sleep(std::time::Duration::from_secs(delay));
+                }
+            }
         }
     });
 }
@@ -106,7 +134,10 @@ fn apply_autostart(_app: &AppHandle, _enable: bool) {
     {
         use tauri_plugin_autostart::ManagerExt;
         let mgr = _app.autolaunch();
-        let _ = if _enable { mgr.enable() } else { mgr.disable() };
+        let res = if _enable { mgr.enable() } else { mgr.disable() };
+        if let Err(e) = res {
+            eprintln!("autostart: {} failed: {e}", if _enable { "enable" } else { "disable" });
+        }
     }
 }
 
@@ -278,13 +309,18 @@ pub fn run() {
             let handle = app.handle().clone();
             let settings = config::load(&handle);
 
+            let athan_playing = Arc::new(AtomicBool::new(false));
             let ended_handle = handle.clone();
+            let ended_flag = athan_playing.clone();
             let audio_tx = audio::spawn(move || {
+                // Playback drained or was stopped: clear the athan guard.
+                ended_flag.store(false, Ordering::SeqCst);
                 let _ = ended_handle.emit("playback-ended", ());
             });
             app.manage(AppState {
                 settings: Mutex::new(settings.clone()),
                 audio_tx: Mutex::new(audio_tx),
+                athan_playing,
             });
 
             apply_autostart(&handle, settings.autostart);

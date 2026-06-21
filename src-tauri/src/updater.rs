@@ -1,7 +1,12 @@
+use crate::AppState;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_updater::UpdaterExt;
+
+/// While waiting out a playing athan, re-check this often.
+const ATHAN_POLL: Duration = Duration::from_secs(30);
 
 /// The app sits in the tray for days, so a startup-only check is not enough:
 /// check shortly after launch, then re-check periodically.
@@ -25,6 +30,11 @@ pub fn spawn(app: AppHandle) {
 
 async fn check_and_install(app: &AppHandle) -> tauri_plugin_updater::Result<()> {
     if let Some(update) = app.updater()?.check().await? {
+        // The passive NSIS installer stops the running app. Never do that while
+        // an athan is playing — wait for it to finish first.
+        while app.state::<AppState>().athan_playing.load(Ordering::SeqCst) {
+            std::thread::sleep(ATHAN_POLL);
+        }
         let _ = app
             .notification()
             .builder()

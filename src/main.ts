@@ -353,6 +353,12 @@ function wire() {
   // navigation driven from the tray (left-click → card, "Open Settings" → settings)
   listen<string>("navigate", (e) => showSettings(e.payload === "settings"));
 
+  // background location detect finished → pull fresh times right away
+  listen("location-updated", () => {
+    refreshTimes();
+    updateLocHint();
+  });
+
   // playback state from the backend (scheduled athans + previews)
   listen<PlaybackStarted>("playback-started", (e) => {
     playing = e.payload;
@@ -427,6 +433,9 @@ function wire() {
     updateLocHint();
   });
 }
+
+// Disable the native right-click context menu across the whole app.
+window.addEventListener("contextmenu", (e) => e.preventDefault());
 
 window.addEventListener("DOMContentLoaded", async () => {
   buildStars();
