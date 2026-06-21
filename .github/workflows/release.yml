@@ -18,6 +18,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Fail fast: the cross-repo publish needs RELEASES_TOKEN. Without this
+      # guard an empty/expired token only surfaces after the full ~10 min build
+      # as "Parameter token or opts.auth is required", looking like a code bug.
+      - name: Verify RELEASES_TOKEN is present
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.RELEASES_TOKEN }}" ]; then
+            echo "::error::RELEASES_TOKEN secret is empty or missing. Create a fine-grained PAT (Contents: read/write on athan-desktop-releases) and set it with: gh secret set RELEASES_TOKEN"
+            exit 1
+          fi
+          echo "RELEASES_TOKEN present."
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
