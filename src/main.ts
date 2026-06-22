@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
+import { getVersion } from "@tauri-apps/api/app";
 
 // ---------------- types (mirror the Rust commands) ----------------
 interface Location {
@@ -309,6 +310,8 @@ async function populate() {
 
   await refreshTimes();
   updateLocHint();
+
+  getVersion().then((v) => ($("#update-hint").textContent = `Version ${v}`));
 }
 
 function updateLocHint() {
@@ -431,6 +434,24 @@ function wire() {
     }
     await refreshTimes();
     updateLocHint();
+  });
+
+  // check for updates (installs + relaunches if one is found)
+  const checkBtn = $<HTMLButtonElement>("#check-update");
+  checkBtn.addEventListener("click", async () => {
+    checkBtn.disabled = true;
+    $("#update-hint").textContent = "Checking…";
+    try {
+      const version = await invoke<string | null>("check_for_updates");
+      $("#update-hint").textContent = version
+        ? `Updating to v${version}…`
+        : "Up to date";
+    } catch (e) {
+      $("#update-hint").textContent = "Check failed";
+      console.error(e);
+    } finally {
+      checkBtn.disabled = false;
+    }
   });
 }
 

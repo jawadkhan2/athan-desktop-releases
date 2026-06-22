@@ -297,6 +297,7 @@ pub fn run() {
             test_dua,
             stop_audio,
             set_volume,
+            updater::check_for_updates,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

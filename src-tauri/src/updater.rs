@@ -28,6 +28,41 @@ pub fn spawn(app: AppHandle) {
     });
 }
 
+/// Manual "Check for updates" from the settings UI. Unlike the background loop,
+/// this is user-initiated, so it installs immediately (no athan wait) and
+/// reports the outcome back to the frontend. Returns `Some(version)` when an
+/// update was found and is installing, `None` when already up to date.
+#[tauri::command]
+pub async fn check_for_updates(app: AppHandle) -> Result<Option<String>, String> {
+    let update = app
+        .updater()
+        .map_err(|e| e.to_string())?
+        .check()
+        .await
+        .map_err(|e| e.to_string())?;
+    match update {
+        Some(update) => {
+            let version = update.version.clone();
+            let _ = app
+                .notification()
+                .builder()
+                .title("Athan")
+                .body(format!("Updating to v{version}…"))
+                .show();
+            update
+                .download_and_install(|_chunk, _total| {}, || {})
+                .await
+                .map_err(|e| e.to_string())?;
+            // Windows: the passive NSIS installer stops the app and relaunches;
+            // other platforms reach the restart below.
+            app.restart();
+            #[allow(unreachable_code)]
+            Ok(Some(version))
+        }
+        None => Ok(None),
+    }
+}
+
 async fn check_and_install(app: &AppHandle) -> tauri_plugin_updater::Result<()> {
     if let Some(update) = app.updater()?.check().await? {
         // The passive NSIS installer stops the running app. Never do that while
