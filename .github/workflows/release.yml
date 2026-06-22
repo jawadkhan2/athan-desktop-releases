@@ -18,18 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Fail fast: the cross-repo publish needs RELEASES_TOKEN. Without this
-      # guard an empty/expired token only surfaces after the full ~10 min build
-      # as "Parameter token or opts.auth is required", looking like a code bug.
-      - name: Verify RELEASES_TOKEN is present
-        shell: bash
-        run: |
-          if [ -z "${{ secrets.RELEASES_TOKEN }}" ]; then
-            echo "::error::RELEASES_TOKEN secret is empty or missing. Create a fine-grained PAT (Contents: read/write on athan-desktop-releases) and set it with: gh secret set RELEASES_TOKEN"
-            exit 1
-          fi
-          echo "RELEASES_TOKEN present."
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -45,14 +33,11 @@ jobs:
 
       - uses: tauri-apps/tauri-action@v0
         env:
-          # PAT with release write access to athan-desktop-releases
-          # (code repo is private; releases live on the public repo)
-          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          # Code and releases share this repo, so the auto-provisioned
+          # GITHUB_TOKEN can publish — no cross-repo PAT, nothing to expire.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          owner: jawadkhan2
-          repo: athan-desktop-releases
           tagName: ${{ inputs.tag || github.ref_name }}
           releaseName: "Athan ${{ inputs.tag || github.ref_name }}"
           releaseBody: "Download `Athan_x64-setup.exe` below to install. Existing installs update automatically."
