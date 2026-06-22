@@ -1,6 +1,6 @@
 [package]
 name = "athan-desktop"
-version = "0.4.0"
+version = "0.4.1"
 description = "Lightweight system-tray Athan prayer-times app"
 authors = ["jawad"]
 edition = "2021"

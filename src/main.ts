@@ -311,7 +311,24 @@ async function populate() {
   await refreshTimes();
   updateLocHint();
 
-  getVersion().then((v) => ($("#update-hint").textContent = `Version ${v}`));
+  getVersion().then((v) => {
+    appVersion = v;
+    setUpdateHint();
+  });
+}
+
+// Current app version, captured once at startup.
+let appVersion = "";
+
+// Render the update hint: always shows the version, with an optional status
+// suffix (e.g. "Checking…", "Up to date") so the version never disappears.
+function setUpdateHint(status?: string) {
+  const base = appVersion ? `Version ${appVersion}` : "";
+  $("#update-hint").textContent = status
+    ? base
+      ? `${base} — ${status}`
+      : status
+    : base;
 }
 
 function updateLocHint() {
@@ -440,14 +457,12 @@ function wire() {
   const checkBtn = $<HTMLButtonElement>("#check-update");
   checkBtn.addEventListener("click", async () => {
     checkBtn.disabled = true;
-    $("#update-hint").textContent = "Checking…";
+    setUpdateHint("Checking…");
     try {
       const version = await invoke<string | null>("check_for_updates");
-      $("#update-hint").textContent = version
-        ? `Updating to v${version}…`
-        : "Up to date";
+      setUpdateHint(version ? `updating to v${version}…` : "up to date");
     } catch (e) {
-      $("#update-hint").textContent = "Check failed";
+      setUpdateHint("check failed");
       console.error(e);
     } finally {
       checkBtn.disabled = false;
