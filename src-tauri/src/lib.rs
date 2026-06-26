@@ -23,6 +23,8 @@ pub struct AppState {
     /// True while a scheduled athan (and its optional dua) is playing. The
     /// updater checks this so a passive install never stops the app mid-athan.
     pub athan_playing: Arc<AtomicBool>,
+    /// Single-flight guard for background location detection.
+    pub location_detecting: AtomicBool,
 }
 
 /// Resolve the bundled audio directory (falls back to the source tree in dev).
@@ -104,6 +106,11 @@ pub fn fire_prayer(app: &AppHandle, key: &str) {
 /// first seconds after launch — especially right after install or a reboot —
 /// and a single failed lookup must not leave the app stuck on "Detecting…".
 pub fn trigger_redetect(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    if state.location_detecting.swap(true, Ordering::SeqCst) {
+        return;
+    }
+
     let handle = app.clone();
     std::thread::spawn(move || {
         // ~0, 3, 6, 12, 24, then 60 s steady: recover fast, then poll forever.
@@ -121,6 +128,10 @@ pub fn trigger_redetect(app: &AppHandle) {
                     drop(s);
                     // Nudge the frontend to refresh immediately, not on its 60 s tick.
                     let _ = handle.emit("location-updated", ());
+                    handle
+                        .state::<AppState>()
+                        .location_detecting
+                        .store(false, Ordering::SeqCst);
                     return;
                 }
                 Err(_) => {
@@ -169,8 +180,10 @@ struct TimesResponse {
     location: Option<config::Location>,
     method: Option<String>,
     entries: Vec<prayer::PrayerEntry>,
+    next_key: Option<String>,
     next_name: Option<String>,
     next_time: Option<String>,
+    next_iso: Option<String>,
 }
 
 #[tauri::command]
@@ -181,8 +194,10 @@ fn get_times(state: State<AppState>) -> TimesResponse {
             location: None,
             method: None,
             entries: vec![],
+            next_key: None,
             next_name: None,
             next_time: None,
+            next_iso: None,
         };
     };
     let method = s
@@ -195,19 +210,22 @@ fn get_times(state: State<AppState>) -> TimesResponse {
             location: Some(loc),
             method: Some(method),
             entries: vec![],
+            next_key: None,
             next_name: None,
             next_time: None,
+            next_iso: None,
         };
     };
     let entries = prayer::entries(&pt);
-    let next = pt.next();
-    let next_time = pt.time(next).with_timezone(&chrono::Local);
+    let (next_key, next_name, next_time) = prayer::next_fardh(&pt, chrono::Local::now());
     TimesResponse {
         location: Some(loc),
         method: Some(method),
         entries,
-        next_name: Some(next.name()),
+        next_key: Some(next_key),
+        next_name: Some(next_name),
         next_time: Some(next_time.format("%H:%M").to_string()),
+        next_iso: Some(next_time.to_rfc3339()),
     }
 }
 
@@ -334,6 +352,7 @@ pub fn run() {
                 settings: Mutex::new(settings.clone()),
                 audio_tx: Mutex::new(audio_tx),
                 athan_playing,
+                location_detecting: AtomicBool::new(false),
             });
 
             apply_autostart(&handle, settings.autostart);

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,14 +54,59 @@ fn config_path(app: &AppHandle) -> PathBuf {
     dir.join("settings.json")
 }
 
+fn backup_path(path: &Path) -> PathBuf {
+    path.with_extension("json.bak")
+}
+
+fn temp_path(path: &Path) -> PathBuf {
+    path.with_extension("json.tmp")
+}
+
+fn read_settings(path: &Path) -> Result<Settings, String> {
+    let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&raw).map_err(|e| e.to_string())
+}
+
 pub fn load(app: &AppHandle) -> Settings {
-    match fs::read_to_string(config_path(app)) {
-        Ok(s) => serde_json::from_str(&s).unwrap_or_default(),
-        Err(_) => Settings::default(),
+    let path = config_path(app);
+    if !path.exists() {
+        return Settings::default();
+    }
+
+    match read_settings(&path) {
+        Ok(settings) => settings,
+        Err(e) => {
+            eprintln!("settings: could not load {path:?}: {e}");
+            let backup = backup_path(&path);
+            read_settings(&backup).unwrap_or_default()
+        }
     }
 }
 
 pub fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
+    let path = config_path(app);
+    let tmp = temp_path(&path);
+    let backup = backup_path(&path);
     let json = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
-    fs::write(config_path(app), json).map_err(|e| e.to_string())
+    fs::write(&tmp, json).map_err(|e| e.to_string())?;
+
+    if path.exists() {
+        let _ = fs::copy(&path, &backup);
+    }
+
+    #[cfg(windows)]
+    if path.exists() {
+        fs::remove_file(&path).map_err(|e| e.to_string())?;
+    }
+
+    match fs::rename(&tmp, &path) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            #[cfg(windows)]
+            if backup.exists() && !path.exists() {
+                let _ = fs::copy(&backup, &path);
+            }
+            Err(e.to_string())
+        }
+    }
 }

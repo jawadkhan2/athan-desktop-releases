@@ -31,8 +31,10 @@ interface TimesResponse {
   location: Location | null;
   method: string | null;
   entries: PrayerEntry[];
+  next_key: string | null;
   next_name: string | null;
   next_time: string | null;
+  next_iso: string | null;
 }
 interface StyleOption {
   key: string;
@@ -92,6 +94,15 @@ function fardhEntries(): (PrayerEntry & { t: Date })[] {
     .map((e) => ({ ...e, t: new Date(e.iso) }));
 }
 
+function backendNextFardh(): { name: string; key: string; t: Date } | null {
+  if (!lastTimes?.next_key || !lastTimes.next_name || !lastTimes.next_iso) return null;
+  return {
+    name: lastTimes.next_name,
+    key: lastTimes.next_key,
+    t: new Date(lastTimes.next_iso),
+  };
+}
+
 /** Determine the current (active) prayer and the next one, with the next time. */
 function currentAndNext() {
   const items = fardhEntries();
@@ -100,17 +111,20 @@ function currentAndNext() {
 
   const nextIdx = items.findIndex((i) => i.t > now);
   if (nextIdx === -1) {
-    // After Isha → next is tomorrow's Fajr (approx with today's Fajr + 1 day).
+    // After Isha -> next is tomorrow's real Fajr from the backend.
     const fajr = items[0];
     return {
       current: items[items.length - 1],
-      next: { name: fajr.name, key: fajr.key, t: addDays(fajr.t, 1) },
+      next: backendNextFardh() ?? { name: fajr.name, key: fajr.key, t: addDays(fajr.t, 1) },
     };
   }
   if (nextIdx === 0) {
-    // Before today's Fajr → still in last night's Isha window.
+    // Before today's Fajr -> still in last night's Isha window.
     const isha = items[items.length - 1];
-    return { current: isha, next: { name: items[0].name, key: items[0].key, t: items[0].t } };
+    return {
+      current: { ...isha, t: addDays(isha.t, -1) },
+      next: { name: items[0].name, key: items[0].key, t: items[0].t },
+    };
   }
   return {
     current: items[nextIdx - 1],

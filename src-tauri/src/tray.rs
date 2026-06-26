@@ -105,12 +105,11 @@ pub fn set_tooltip(app: &AppHandle, text: &str) {
 pub fn update(app: &AppHandle, pt: &PrayerTimes, last_sig: &mut String) {
     let entries = prayer::entries(pt);
 
-    let next = pt.next();
-    let next_time = pt.time(next).with_timezone(&Local);
+    let (_, next_name, next_time) = prayer::next_fardh(pt, Local::now());
     let mins = (next_time - Local::now()).num_minutes().max(0);
     let tip = format!(
         "Athan — Next: {} {} (in {}h {:02}m)",
-        next.name(),
+        next_name,
         next_time.format("%H:%M"),
         mins / 60,
         mins % 60

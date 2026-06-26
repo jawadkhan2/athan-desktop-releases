@@ -3,16 +3,16 @@ use serde::Deserialize;
 use std::time::Duration;
 
 #[derive(Deserialize)]
-struct IpApi {
-    status: String,
-    lat: Option<f64>,
-    lon: Option<f64>,
+struct IpWhoIs {
+    success: bool,
+    latitude: Option<f64>,
+    longitude: Option<f64>,
     city: Option<String>,
-    #[serde(rename = "countryCode")]
     country_code: Option<String>,
+    message: Option<String>,
 }
 
-/// Detect approximate location from the public IP via ip-api.com (no API key).
+/// Detect approximate location from the public IP over HTTPS (no API key).
 pub fn detect() -> Result<Location, String> {
     let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))
@@ -20,19 +20,19 @@ pub fn detect() -> Result<Location, String> {
         .map_err(|e| e.to_string())?;
 
     let resp = client
-        .get("http://ip-api.com/json/?fields=status,lat,lon,city,countryCode")
+        .get("https://ipwho.is/?fields=success,latitude,longitude,city,country_code,message")
         .send()
         .map_err(|e| e.to_string())?
-        .json::<IpApi>()
+        .json::<IpWhoIs>()
         .map_err(|e| e.to_string())?;
 
-    if resp.status != "success" {
-        return Err("IP geolocation lookup failed".into());
+    if !resp.success {
+        return Err(resp.message.unwrap_or_else(|| "IP geolocation lookup failed".into()));
     }
 
     Ok(Location {
-        lat: resp.lat.ok_or("missing latitude")?,
-        lon: resp.lon.ok_or("missing longitude")?,
+        lat: resp.latitude.ok_or("missing latitude")?,
+        lon: resp.longitude.ok_or("missing longitude")?,
         city: resp.city.unwrap_or_default(),
         country_code: resp.country_code.unwrap_or_default(),
     })

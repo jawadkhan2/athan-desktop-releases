@@ -28,10 +28,10 @@ pub fn spawn(app: AppHandle) {
     });
 }
 
-/// Manual "Check for updates" from the settings UI. Unlike the background loop,
-/// this is user-initiated, so it installs immediately (no athan wait) and
-/// reports the outcome back to the frontend. Returns `Some(version)` when an
-/// update was found and is installing, `None` when already up to date.
+/// Manual "Check for updates" from the settings UI. It reports the outcome back
+/// to the frontend, but still waits for any active athan before installing.
+/// Returns `Some(version)` when an update was found and is installing, `None`
+/// when already up to date.
 #[tauri::command]
 pub async fn check_for_updates(app: AppHandle) -> Result<Option<String>, String> {
     let update = app
@@ -43,6 +43,7 @@ pub async fn check_for_updates(app: AppHandle) -> Result<Option<String>, String>
     match update {
         Some(update) => {
             let version = update.version.clone();
+            wait_for_athan(&app);
             let _ = app
                 .notification()
                 .builder()
@@ -63,13 +64,17 @@ pub async fn check_for_updates(app: AppHandle) -> Result<Option<String>, String>
     }
 }
 
+fn wait_for_athan(app: &AppHandle) {
+    while app.state::<AppState>().athan_playing.load(Ordering::SeqCst) {
+        std::thread::sleep(ATHAN_POLL);
+    }
+}
+
 async fn check_and_install(app: &AppHandle) -> tauri_plugin_updater::Result<()> {
     if let Some(update) = app.updater()?.check().await? {
         // The passive NSIS installer stops the running app. Never do that while
         // an athan is playing — wait for it to finish first.
-        while app.state::<AppState>().athan_playing.load(Ordering::SeqCst) {
-            std::thread::sleep(ATHAN_POLL);
-        }
+        wait_for_athan(app);
         let _ = app
             .notification()
             .builder()

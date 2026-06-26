@@ -98,6 +98,31 @@ pub fn fardh_times(pt: &PrayerTimes) -> Vec<(String, DateTime<Local>)> {
     .collect()
 }
 
+fn display_name(key: &str) -> String {
+    match key {
+        "fajr" => "Fajr".to_string(),
+        "dhuhr" => "Dhuhr".to_string(),
+        "asr" => "Asr".to_string(),
+        "maghrib" => "Maghrib".to_string(),
+        "isha" => "Isha".to_string(),
+        _ => key.to_string(),
+    }
+}
+
+/// The next prayer the app should announce or count down to: the 5 fardh
+/// prayers only, never sunrise/qiyam from the salah crate's broader sequence.
+pub fn next_fardh(pt: &PrayerTimes, now: DateTime<Local>) -> (String, String, DateTime<Local>) {
+    if let Some((key, time)) = fardh_times(pt).into_iter().find(|(_, time)| *time > now) {
+        return (key.clone(), display_name(&key), time);
+    }
+
+    (
+        "fajr".to_string(),
+        "Fajr".to_string(),
+        pt.time(Prayer::FajrTomorrow).with_timezone(&Local),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,5 +176,26 @@ mod tests {
         };
         let date = NaiveDate::from_ymd_opt(2026, 6, 21).unwrap();
         assert!(try_compute(&tromso, "muslim_world_league", "shafi", date).is_none());
+    }
+
+    #[test]
+    fn next_fardh_skips_sunrise() {
+        let date = NaiveDate::from_ymd_opt(2026, 6, 8).unwrap();
+        let pt = try_compute(&cairo(), "egyptian", "shafi", date).unwrap();
+        let after_fajr = pt.time(Prayer::Fajr).with_timezone(&Local) + chrono::Duration::minutes(1);
+        let (key, name, _) = next_fardh(&pt, after_fajr);
+        assert_eq!(key, "dhuhr");
+        assert_eq!(name, "Dhuhr");
+    }
+
+    #[test]
+    fn next_fardh_after_isha_uses_tomorrows_fajr() {
+        let date = NaiveDate::from_ymd_opt(2026, 6, 8).unwrap();
+        let pt = try_compute(&cairo(), "egyptian", "shafi", date).unwrap();
+        let after_isha = pt.time(Prayer::Isha).with_timezone(&Local) + chrono::Duration::minutes(1);
+        let (key, name, time) = next_fardh(&pt, after_isha);
+        assert_eq!(key, "fajr");
+        assert_eq!(name, "Fajr");
+        assert_eq!(time, pt.time(Prayer::FajrTomorrow).with_timezone(&Local));
     }
 }
