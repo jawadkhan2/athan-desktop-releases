@@ -75,7 +75,11 @@ pub fn fire_prayer(app: &AppHandle, key: &str) {
     app.state::<AppState>()
         .athan_playing
         .store(true, Ordering::SeqCst);
-    send_audio(app, AudioCmd::Play { paths, volume: settings.volume });
+    send_audio(app, AudioCmd::Play {
+        paths,
+        volume: settings.volume,
+        wake_display: true,
+    });
     emit_playback_started(app, "athan", Some(key.to_string()));
 
     let name = match key {
@@ -243,7 +247,11 @@ fn test_play(app: AppHandle, state: State<AppState>, style: String) {
     } else {
         audio::style_file(&style).to_string()
     };
-    send_audio(&app, AudioCmd::Play { paths: vec![dir.join(file)], volume });
+    send_audio(&app, AudioCmd::Play {
+        paths: vec![dir.join(file)],
+        volume,
+        wake_display: false,
+    });
     emit_playback_started(&app, "preview-style", None);
 }
 
@@ -251,7 +259,11 @@ fn test_play(app: AppHandle, state: State<AppState>, style: String) {
 fn test_dua(app: AppHandle, state: State<AppState>) {
     let volume = state.settings.lock().unwrap().volume;
     let dir = audio_dir(&app);
-    send_audio(&app, AudioCmd::Play { paths: vec![dir.join(audio::DUA_FILE)], volume });
+    send_audio(&app, AudioCmd::Play {
+        paths: vec![dir.join(audio::DUA_FILE)],
+        volume,
+        wake_display: false,
+    });
     emit_playback_started(&app, "preview-dua", None);
 }
 

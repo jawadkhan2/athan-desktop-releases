@@ -10,8 +10,8 @@ use std::time::{Duration, Instant};
 /// or monitor sleeping. Many setups (this one included) have the speakers wired
 /// into the monitor, so when the display sleeps its audio endpoint powers down
 /// and there is no device left to play through. We therefore keep the *display*
-/// awake for the duration of the athan (`ES_DISPLAY_REQUIRED`) and nudge it awake
-/// at the start in case it was already asleep when the athan fired.
+/// awake for the duration of the athan (`ES_DISPLAY_REQUIRED`), nudge it awake,
+/// then give the monitor's audio endpoint a moment to return before playback.
 #[cfg(windows)]
 mod keepawake {
     type ExecutionState = u32;
@@ -32,16 +32,16 @@ mod keepawake {
     /// `end`, so audio routed through the monitor keeps flowing.
     pub fn begin() {
         unsafe {
-            // Synthesize a harmless F15 tap to wake an already-sleeping monitor;
-            // SetThreadExecutionState only *prevents* sleep, it can't undo it.
-            keybd_event(VK_F15, 0, 0, 0);
-            keybd_event(VK_F15, 0, KEYEVENTF_KEYUP, 0);
             SetThreadExecutionState(
                 ES_CONTINUOUS
                     | ES_SYSTEM_REQUIRED
                     | ES_DISPLAY_REQUIRED
                     | ES_AWAYMODE_REQUIRED,
             );
+            // Synthesize a harmless F15 tap to wake an already-sleeping monitor;
+            // SetThreadExecutionState only *prevents* sleep, it can't undo it.
+            keybd_event(VK_F15, 0, 0, 0);
+            keybd_event(VK_F15, 0, KEYEVENTF_KEYUP, 0);
         }
     }
 
@@ -60,7 +60,12 @@ mod keepawake {
 
 pub enum AudioCmd {
     /// Play the given files in sequence (e.g. athan then dua) at `volume`.
-    Play { paths: Vec<PathBuf>, volume: f32 },
+    Play {
+        paths: Vec<PathBuf>,
+        volume: f32,
+        /// For scheduled athans, wake the monitor and wait before starting audio.
+        wake_display: bool,
+    },
     /// Adjust the volume of whatever is currently playing.
     SetVolume(f32),
     /// Stop whatever is playing.
@@ -117,7 +122,11 @@ pub fn spawn(on_ended: impl Fn() + Send + 'static) -> Sender<AudioCmd> {
                         on_ended();
                     }
                 }
-                Ok(AudioCmd::Play { paths, volume }) => {
+                Ok(AudioCmd::Play {
+                    paths,
+                    volume,
+                    wake_display,
+                }) => {
                     if let Some((_, s)) = current.take() {
                         s.stop();
                     }
@@ -126,28 +135,66 @@ pub fn spawn(on_ended: impl Fn() + Send + 'static) -> Sender<AudioCmd> {
                         .iter()
                         .map(|p| duration_of(p, &mut durations))
                         .sum();
+                    let now = Instant::now();
                     let play = Playing {
                         paths,
                         volume,
-                        started: Instant::now(),
+                        started: (!wake_display).then_some(now),
                         total,
+                        wake_ready_at: now + DISPLAY_WAKE_DELAY,
+                        device_deadline: now + INITIAL_DEVICE_WAIT,
                     };
                     keepawake::begin();
-                    match build_sink(&play, Duration::ZERO, &mut durations) {
-                        Some(sc) => {
-                            current = Some(sc);
-                            playing = Some(play);
+
+                    if wake_display {
+                        playing = Some(play);
+                    } else {
+                        match build_sink(&play, Duration::ZERO, &mut durations) {
+                            Some(sc) => {
+                                current = Some(sc);
+                            }
+                            None => {
+                                // No device right now — keep the logical play alive and
+                                // let the recovery tick retry until a device appears.
+                            }
                         }
-                        None => {
-                            // No device right now — keep the logical play alive and
-                            // let the recovery tick retry until a device appears.
-                            playing = Some(play);
-                        }
+                        playing = Some(play);
                     }
                 }
                 Err(RecvTimeoutError::Timeout) => {
-                    let Some(play) = playing.as_ref() else { continue };
-                    let elapsed = play.started.elapsed();
+                    let Some(play) = playing.as_ref() else {
+                        continue;
+                    };
+                    if play.started.is_none() {
+                        let now = Instant::now();
+                        if now < play.wake_ready_at {
+                            continue;
+                        }
+                        let play_for_start = play.clone();
+                        match build_sink(&play_for_start, Duration::ZERO, &mut durations) {
+                            Some(sc) => {
+                                current = Some(sc);
+                                if let Some(play) = playing.as_mut() {
+                                    play.started = Some(Instant::now());
+                                }
+                            }
+                            None if now >= play_for_start.device_deadline => {
+                                eprintln!(
+                                    "audio: no output device became available after waking display"
+                                );
+                                current = None;
+                                playing = None;
+                                keepawake::end();
+                                on_ended();
+                            }
+                            None => { /* monitor/audio endpoint may still be waking */ }
+                        }
+                        continue;
+                    }
+                    let Some(started) = play.started else {
+                        continue;
+                    };
+                    let elapsed = started.elapsed();
                     let drained = current.as_ref().is_none_or(|(_, s)| s.empty());
                     if !drained {
                         continue;
@@ -188,6 +235,11 @@ pub fn spawn(on_ended: impl Fn() + Send + 'static) -> Sender<AudioCmd> {
 /// Small grace window so reaching the very end of the queue isn't misread as a
 /// premature device failure.
 const RESUME_EPSILON: Duration = Duration::from_millis(750);
+/// Delay for scheduled athans after waking the display, so monitor-attached
+/// speakers have time to reappear before the first audio frame is queued.
+const DISPLAY_WAKE_DELAY: Duration = Duration::from_secs(5);
+/// Maximum time to keep retrying the initial device open after a wake nudge.
+const INITIAL_DEVICE_WAIT: Duration = Duration::from_secs(60);
 
 /// A logical playback request, retained so it can be rebuilt/resumed on a fresh
 /// device if the current one disappears mid-athan.
@@ -195,8 +247,10 @@ const RESUME_EPSILON: Duration = Duration::from_millis(750);
 struct Playing {
     paths: Vec<PathBuf>,
     volume: f32,
-    started: Instant,
+    started: Option<Instant>,
     total: Duration,
+    wake_ready_at: Instant,
+    device_deadline: Instant,
 }
 
 /// Open a fresh default output stream and queue `play`'s files, skipping the
